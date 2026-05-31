@@ -1,0 +1,75 @@
+CREATE TABLE customers (
+  id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  name  TEXT    NOT NULL,
+  email TEXT    NOT NULL UNIQUE,
+  phone TEXT
+);
+CREATE TABLE pizzas (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  base_price REAL NOT NULL CHECK (base_price >= 0)
+);
+CREATE TABLE toppings (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  name       TEXT NOT NULL,
+  extra_cost REAL NOT NULL DEFAULT 0 CHECK (extra_cost >= 0)
+);
+CREATE TABLE orders (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  customer_id INTEGER  NOT NULL,
+  order_date  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status      TEXT     NOT NULL DEFAULT 'pending',
+  FOREIGN KEY (customer_id) REFERENCES customers(id)
+);
+CREATE TABLE order_pizzas (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id      INTEGER NOT NULL,
+  pizza_id      INTEGER NOT NULL,
+  quantity      INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  price_at_time REAL    NOT NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(id),
+  FOREIGN KEY (pizza_id) REFERENCES pizzas(id)
+);
+CREATE TABLE pizza_toppings (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_pizza_id INTEGER NOT NULL,
+  topping_id     INTEGER NOT NULL,
+  price_at_time  REAL    NOT NULL,
+  FOREIGN KEY (order_pizza_id) REFERENCES order_pizzas(id),
+  FOREIGN KEY (topping_id)     REFERENCES toppings(id)
+);
+CREATE TABLE drinks (
+  id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  name  TEXT NOT NULL,
+  price REAL NOT NULL CHECK (price >= 0)
+);
+
+CREATE TABLE order_drinks (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  order_id      INTEGER NOT NULL,
+  drink_id      INTEGER NOT NULL,
+  quantity      INTEGER NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  price_at_time REAL    NOT NULL,
+  FOREIGN KEY (order_id)  REFERENCES orders(id),
+  FOREIGN KEY (drink_id)  REFERENCES drinks(id)
+);
+--------------- test ----------------------
+
+INSERT INTO customers VALUES (1,'Dana','dana@mail.com','050-1234567');
+INSERT INTO pizzas VALUES (1,'Margherita',45.0),(2,'Pepperoni',52.0);
+INSERT INTO toppings VALUES (1,'Olives',2.0),(2,'Mushrooms',3.0);
+INSERT INTO drinks VALUES (1,'Cola',12.0),(2,'Sprite',12.0);
+INSERT INTO orders VALUES (1,1,'2026-05-31 12:00:00','confirmed');
+INSERT INTO order_pizzas VALUES (1,1,1,2,45.0);
+INSERT INTO pizza_toppings VALUES (1,1,1,2.0);
+INSERT INTO order_drinks VALUES (1,1,1,2,12.0);
+
+SELECT c.name, p.name AS pizza, t.name AS topping, d.name AS drink
+FROM customers c
+JOIN orders o ON c.id = o.customer_id
+JOIN order_pizzas op ON o.id = op.order_id
+JOIN pizzas p ON op.pizza_id = p.id
+JOIN pizza_toppings pt ON op.id = pt.order_pizza_id
+JOIN toppings t ON pt.topping_id = t.id
+JOIN order_drinks od ON o.id = od.order_id
+JOIN drinks d ON od.drink_id = d.id;
